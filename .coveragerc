@@ -1,0 +1,3 @@
+[run]
+source = src/pyams_http_proxy
+omit = src/pyams_http_proxy/tests/*
