@@ -1,6 +1,14 @@
 Changelog
 =========
 
+1.0.2
+-----
+ - Gitlab-CI update
+
+1.0.1
+-----
+ - removed reference to Pyramid in doctests
+
 1.0.0
 -----
  - initial release
