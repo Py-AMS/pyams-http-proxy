@@ -47,18 +47,17 @@ class ProxyApplication:
             except AttributeError:
                 LOGGER.warning("Can't load plug-in: %s", klass)
         remotes = self.remotes = {}
-        for remote in config['remotes']:
-            for base_path, settings in remote.items():
-                remotes[base_path] = {
-                    'remote': settings['remote'],
-                    'config': settings.get('config', {}),
-                    'timeout': settings.get('timeout', 5.0) or None
-                }
-                for plugin_name in settings.get('plugins', ''):
-                    plugin = plugins.get(plugin_name)
-                    if plugin is not None:
-                        plugin.init_proxy(base_path, settings)
-                        remotes[base_path].setdefault('plugins', []).append(plugin)
+        for base_path, settings in config['remotes'].items():
+            remotes[base_path] = {
+                'remote': settings['remote'],
+                'config': settings.get('config', {}),
+                'timeout': settings.get('timeout', 5.0) or None
+            }
+            for plugin_name in settings.get('plugins', ''):
+                plugin = plugins.get(plugin_name)
+                if plugin is not None:
+                    plugin.init_proxy(base_path, settings)
+                    remotes[base_path].setdefault('plugins', []).append(plugin)
         self.client = httpx.AsyncClient(verify=config.get('ssl_certificates', None))
 
     async def __call__(self, scope, receive, send):
