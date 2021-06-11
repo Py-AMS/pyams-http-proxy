@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.1.0
+-----
+ - added monitoring plug-in
+
 1.0.3
 -----
  - small update in JSON configuration file format
