@@ -71,25 +71,37 @@ class ProxyApplication:
                         plugin.apply_to(request, plugins_config[plugin.config_name]):
                     request = await plugin.pre_handler(request,
                                                        plugins_config[plugin.config_name])
-            async with self.client.stream(method=self.get_method(request),
-                                          url=self.get_url(request),
-                                          headers=self.get_headers(request),
-                                          params=self.get_params(request),
-                                          data=self.get_body(request),
-                                          timeout=config.get('timeout'),
-                                          allow_redirects=False) as response:
+
+            remote = config.get('remote')
+            if not remote:
+                response = Response()
                 for plugin in config.get('plugins', ()):
                     if hasattr(plugin, 'post_handler') and \
                             plugin.apply_to(request, plugins_config[plugin.config_name]):
                         response = await plugin.post_handler(request, response,
                                                              plugins_config[plugin.config_name])
-                if isinstance(response, Response):
-                    app = response
-                else:
-                    app = StreamingResponse(status_code=response.status_code,
-                                            headers=response.headers,
-                                            content=response.aiter_raw())
-                await app(scope, receive, send)
+                await response(scope, receive, send)
+
+            else:
+                async with self.client.stream(method=self.get_method(request),
+                                              url=self.get_url(request, remote),
+                                              headers=self.get_headers(request),
+                                              params=self.get_params(request),
+                                              data=self.get_body(request),
+                                              timeout=config.get('timeout'),
+                                              allow_redirects=False) as response:
+                    for plugin in config.get('plugins', ()):
+                        if hasattr(plugin, 'post_handler') and \
+                                plugin.apply_to(request, plugins_config[plugin.config_name]):
+                            response = await plugin.post_handler(request, response,
+                                                                 plugins_config[plugin.config_name])
+                    if isinstance(response, Response):
+                        app = response
+                    else:
+                        app = StreamingResponse(status_code=response.status_code,
+                                                headers=response.headers,
+                                                content=response.aiter_raw())
+                    await app(scope, receive, send)
 
         elif scope['type'] == 'lifespan':
             message = await receive()
@@ -115,9 +127,10 @@ class ProxyApplication:
         """Request method getter"""
         return request.method
 
-    def get_url(self, request):
+    @staticmethod
+    def get_url(request, remote):
         """Request remote URL getter"""
-        components = urlsplit(self.get_config(request)['remote'])
+        components = urlsplit(remote)
         path = request.url.path[1:].split('/')
         return str(request.url.replace(scheme=components.scheme,
                                        netloc=components.netloc,
