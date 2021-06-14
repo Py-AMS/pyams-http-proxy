@@ -19,6 +19,7 @@ __docformat__ = 'restructuredtext'
 
 import importlib
 import logging
+import re
 from urllib.parse import urlsplit
 
 import httpx
@@ -28,6 +29,10 @@ from starlette.responses import Response, StreamingResponse
 
 
 LOGGER = logging.getLogger('PyAMS (proxy)')
+
+EXTENSION_PATH = re.compile(r'(?P<base>.*)'
+                            r'/\+\+(?P<ext>[a-z]+)\+\+'
+                            r'(?P<path>/.+)', re.VERBOSE)
 
 
 class ProxyApplication:
@@ -64,7 +69,7 @@ class ProxyApplication:
         """Async proxy call"""
         if scope['type'] == 'http':
             request = Request(scope, receive=receive)
-            config = self.get_config(request)
+            config, remote = self.get_config(request)
             plugins_config = config.get('config', {})
             for plugin in config.get('plugins', ()):
                 if hasattr(plugin, 'pre_handler') and \
@@ -72,7 +77,7 @@ class ProxyApplication:
                     request = await plugin.pre_handler(request,
                                                        plugins_config[plugin.config_name])
 
-            remote = config.get('remote')
+            # remote = config.get('remote')
             if not remote:
                 response = Response()
                 for plugin in config.get('plugins', ()):
@@ -84,7 +89,7 @@ class ProxyApplication:
 
             else:
                 async with self.client.stream(method=self.get_method(request),
-                                              url=self.get_url(request, remote),
+                                              url=remote,
                                               headers=self.get_headers(request),
                                               params=self.get_params(request),
                                               data=self.get_body(request),
@@ -116,9 +121,19 @@ class ProxyApplication:
 
     def get_config(self, request):
         """Request config getter"""
-        path = request.url.path[1:].split('/')
+        path = request.url.path[1:]
+        path_elements = path.split('/')
         try:
-            return self.remotes[path[0]]
+            context = path_elements[0]
+            match = EXTENSION_PATH.match(path)
+            if match:  # path with '++ext++' element
+                base, ext, ext_path = match.groups()
+                config = self.remotes['{}-{}'.format(context, ext)]
+                target = self.get_url(request, config.get('remote'), ext_path)
+            else:
+                config = self.remotes[context]
+                target = self.get_url(request, config.get('remote'))
+            return config, target
         except KeyError as exc:
             raise HTTPException(404) from exc
 
@@ -128,10 +143,13 @@ class ProxyApplication:
         return request.method
 
     @staticmethod
-    def get_url(request, remote):
+    def get_url(request, remote, path=None):
         """Request remote URL getter"""
         components = urlsplit(remote)
-        path = request.url.path[1:].split('/')
+        if not path:
+            path = request.url.path[1:]
+        if isinstance(path, str):
+            path = path.split('/')
         return str(request.url.replace(scheme=components.scheme,
                                        netloc=components.netloc,
                                        path='/{}'.format('/'.join(path[1:]))))
