@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.2.0
+-----
+ - added "context extension" by providing a "++ext++" URL path element; this
+   allows to access several contexts with a same base URL
+
 1.1.0
 -----
  - added monitoring plug-in
