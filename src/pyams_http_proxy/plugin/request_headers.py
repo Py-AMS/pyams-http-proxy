@@ -28,7 +28,7 @@ from pyams_http_proxy.proxy import LOGGER
 class RequestHeaders(ProxyPlugin):
     """A proxy plugin used to add or remove headers from input request"""
 
-    config_name = 'headers_filter'
+    config_name = 'request_headers'
 
     @staticmethod
     def init_plugin():
