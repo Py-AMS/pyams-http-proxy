@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.3.0
+-----
+ - added headers filter plug-in, to add or remove headers from incoming request
+ - improved support for plug-ins handling request headers
+
 1.2.0
 -----
  - added "context extension" by providing a "++ext++" URL path element; this
