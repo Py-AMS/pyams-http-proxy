@@ -145,6 +145,8 @@ class ProxyApplication:
     @staticmethod
     def get_url(request, remote, path=None):
         """Request remote URL getter"""
+        if not remote:
+            return None
         components = urlsplit(remote)
         if not path:
             path = request.url.path[1:]
