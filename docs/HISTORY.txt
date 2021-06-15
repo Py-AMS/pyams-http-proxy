@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.3.2
+-----
+ - updated proxy URL getter to handle null remotes used for service monitoring
+
 1.3.1
 -----
  - updated request headers plug-in configuration name
