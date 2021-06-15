@@ -157,16 +157,21 @@ class ProxyApplication:
     @staticmethod
     def get_headers(request, decode=False):
         """Request headers getter"""
+        headers = getattr(request.state, 'headers', None)
+        if headers:
+            headers = list(headers.items())
+        else:
+            headers = request.headers.raw
         if decode:
             return [
                 (key.decode(), value.decode())
-                for key, value in request.headers.raw
-                if key != b'host'
+                for key, value in headers
+                if key not in ('host', b'host')
             ]
         return [
             (key, value)
-            for key, value in request.headers.raw
-            if key != b'host'
+            for key, value in headers
+            if key not in ('host', b'host')
         ]
 
     @staticmethod
