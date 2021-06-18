@@ -157,13 +157,16 @@ class ProxyApplication:
                                        path='/{}'.format('/'.join(path[1:]))))
 
     @staticmethod
-    def get_headers(request, decode=False):
+    def get_headers(source, decode=False):
         """Request headers getter"""
-        headers = getattr(request.state, 'headers', None)
+        state = getattr(source, 'state', None)
+        headers = None
+        if state is not None:
+            headers = getattr(source.state, 'headers', None)
         if headers:
             headers = list(headers.items())
         else:
-            headers = request.headers.raw
+            headers = source.headers.raw
         if decode:
             return [
                 (key.decode(), value.decode())
