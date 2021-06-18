@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.3.3
+-----
+ - updated proxy headers getter to handle requests and response correctly
+
 1.3.2
 -----
  - updated proxy URL getter to handle null remotes used for service monitoring
