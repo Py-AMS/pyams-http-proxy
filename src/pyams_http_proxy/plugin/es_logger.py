@@ -27,6 +27,7 @@ Plug-in specific configuration:
  - max_retries: maximum number of request retries, if enabled
  - es_index: name of Elasticsearch index; name may be compatible with date's "strftime"
    function
+ - expressions: list of Python expressions which should be applied on data before indexing
  - properties: object with additional properties
 """
 
@@ -93,6 +94,14 @@ class ElasticLogger(ProxyPlugin):
                                     max_retries=config.get('max_retries', 0))
         try:
             index = date.today().strftime(config['es_index'])
+            # update payload before indexing
+            expressions = config.get('expressions')
+            if expressions:
+                for expr in expressions:
+                    try:
+                        eval(expr, {}, {'payload': payload})
+                    except (SyntaxError, ValueError, TypeError, AttributeError):
+                        pass
             data = {
                 '@timestamp': datetime.utcnow(),
                 'request': {
