@@ -169,7 +169,8 @@ class ProxyApplication:
             headers = source.headers.raw
         if decode:
             return [
-                (key.decode(), value.decode())
+                (key.decode() if isinstance(key, bytes) else key,
+                 value.decode() if isinstance(value, bytes) else value)
                 for key, value in headers
                 if key not in ('host', b'host')
             ]
@@ -184,7 +185,8 @@ class ProxyApplication:
         """Request params getter"""
         if decode:
             return [
-                (key.decode(), value.decode())
+                (key.decode() if isinstance(key, bytes) else key,
+                 value.decode() if isinstance(value, bytes) else value)
                 for key, value in request.query_params.items()
             ]
         return [
