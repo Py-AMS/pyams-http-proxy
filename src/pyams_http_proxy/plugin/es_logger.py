@@ -38,7 +38,7 @@ import uuid
 from datetime import date, datetime
 from json import JSONDecodeError
 
-from elasticsearch import AsyncElasticsearch, RequestError, SerializationError
+from elasticsearch import AsyncElasticsearch, TransportError
 from starlette.responses import JSONResponse, Response
 
 from pyams_http_proxy.plugin import ProxyPlugin
@@ -128,10 +128,10 @@ class ElasticLogger(ProxyPlugin):
                     'path': response.url.path
                 })
             try:
-                await client.index(index,
+                await client.index(index=index,
                                    id=uuid.uuid4(),
                                    body=data)
-            except (SerializationError, RequestError):
+            except TransportError:
                 LOGGER.exception("Elasticsearch exception")
         finally:
             await client.close()
