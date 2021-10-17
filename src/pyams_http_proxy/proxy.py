@@ -23,6 +23,7 @@ import re
 from urllib.parse import urlsplit
 
 import httpx
+from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
@@ -35,10 +36,17 @@ EXTENSION_PATH = re.compile(r'(?P<base>.*)'
                             r'(?P<path>/.+)', re.VERBOSE)
 
 
-class ProxyApplication:
+class ProxyApplication(Starlette):
     """Starlette proxy handler"""
 
+    @classmethod
+    async def create(cls, config):
+        """Application factory"""
+        app = cls(config)
+        return app
+
     def __init__(self, config):
+        super().__init__()
         self.config = config
         plugins = self.plugins = {}
         for key, names in config['plugins'].items():
@@ -63,7 +71,8 @@ class ProxyApplication:
                 if plugin is not None:
                     plugin.init_proxy(base_path, settings)
                     remotes[base_path].setdefault('plugins', []).append(plugin)
-        self.client = httpx.AsyncClient(verify=config.get('ssl_certificates', None))
+        self.client = httpx.AsyncClient(verify=config.get('ssl_certificates', None),
+                                        follow_redirects=False)
 
     async def __call__(self, scope, receive, send):
         """Async proxy call"""
@@ -93,8 +102,7 @@ class ProxyApplication:
                                               headers=self.get_headers(request),
                                               params=self.get_params(request),
                                               data=self.get_body(request),
-                                              timeout=config.get('timeout'),
-                                              follow_redirects=False) as response:
+                                              timeout=config.get('timeout')) as response:
                     for plugin in config.get('plugins', ()):
                         if hasattr(plugin, 'post_handler') and \
                                 plugin.apply_to(request, plugins_config[plugin.config_name]):
