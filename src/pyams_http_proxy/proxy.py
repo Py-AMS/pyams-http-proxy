@@ -94,7 +94,7 @@ class ProxyApplication:
                                               params=self.get_params(request),
                                               data=self.get_body(request),
                                               timeout=config.get('timeout'),
-                                              allow_redirects=False) as response:
+                                              follow_redirects=False) as response:
                     for plugin in config.get('plugins', ()):
                         if hasattr(plugin, 'post_handler') and \
                                 plugin.apply_to(request, plugins_config[plugin.config_name]):
