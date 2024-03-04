@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.6.0
+-----
+ - updated Elasticsearch client settings
+ - reuse current HTTP client instead of creating a new one in lifespan handler
+
 1.5.0
 -----
  - added Elasticsearch APM support
