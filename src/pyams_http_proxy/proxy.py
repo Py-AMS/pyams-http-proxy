@@ -120,7 +120,7 @@ class ProxyApplication(Starlette):
             message = await receive()
             assert message['type'] == 'lifespan.startup'
 
-            async with httpx.AsyncClient() as self.client:
+            async with self.client:
                 await send({'type': 'lifespan.startup.complete'})
                 message = await receive()
 
