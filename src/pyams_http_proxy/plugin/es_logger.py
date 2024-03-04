@@ -19,8 +19,11 @@ this plug-in to work!
 
 Plug-in specific configuration:
  - es_servers: array of Elasticsearch connections
- - use_ssl: flag to specify if SSL should be used; True by default
  - verify_certs: flag to specify if SSL certificates should be used; True by default
+ - ca_certs: optional path to CA bundle
+ - client_cert: path to the file containing the private key and the certificate, or cert
+   only if using client key
+ - client_key: path to the file containing the private key if using separate cert and key files
  - timeout: Elasticsearch query timeout
  - retry_on_timeout: flag to specify if ES request should be retried on timeout; False
    by default
@@ -86,10 +89,20 @@ class ElasticLogger(ProxyPlugin):
                 "status": "error",
                 "message": "Proxy JSON decoding error"
             }
+        api_key = config.get('api_key')
+        api_key = api_key.split(':', 1) if api_key else None
+        basic_auth = config.get('basic_auth')
+        basic_auth = basic_auth.split(':', 1) if basic_auth else None
         client = AsyncElasticsearch(config['es_servers'],
-                                    use_ssl=config.get('use_ssl', True),
+                                    cloud_id=config.get('cloud_id', None),
+                                    api_key=api_key,
+                                    basic_auth=basic_auth,
+                                    bearer_auth=config.get('bearer_auth', None),
                                     verify_certs=config.get('verify_certs', True),
-                                    timeout=config.get('timeout', 10.0),
+                                    ca_certs=config.get('ca_certs', None),
+                                    client_cert=config.get('client_cert', None),
+                                    client_key=config.get('client_key', None),
+                                    request_timeout=config.get('timeout', 10.0),
                                     retry_on_timeout=config.get('retry_on_timeout', False),
                                     max_retries=config.get('max_retries', 0))
         try:
