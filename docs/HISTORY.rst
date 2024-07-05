@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.7.1
+-----
+ - corrected includes handler
+
 1.7.0
 -----
  - added support for "includes" config option, to update initial configuration
