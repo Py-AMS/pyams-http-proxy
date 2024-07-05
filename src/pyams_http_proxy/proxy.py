@@ -86,9 +86,9 @@ class ProxyApplication(Starlette):
     @classmethod
     def init_includes(cls, remotes, config, plugins):
         """Initialize includes"""
-        for item in config.get('includes'):
+        for item in config.get('includes', []):
             if os.path.isdir(item):
-                for path, dirnames, filenames in os.walk('item'):
+                for path, dirnames, filenames in os.walk(item):
                     for filename in filenames:
                         cls.init_config(remotes, os.path.join(path, filename), plugins)
             elif os.path.isfile(item):
