@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.7.0
+-----
+ - added support for "includes" config option, to update initial configuration
+   with other files or directories contents
+
 1.6.0
 -----
  - updated Elasticsearch client settings
