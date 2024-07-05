@@ -29,7 +29,7 @@ from pyams_http_proxy.proxy import LOGGER
 
 
 class BodyLogger(ProxyPlugin):
-    """A proxy plugin used to rewrite JSON attributes"""
+    """A simple proxy plugin used to log request body in system logger"""
 
     config_name = 'body_logger'
 
