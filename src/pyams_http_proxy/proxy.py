@@ -18,7 +18,9 @@ This module defines the main proxy application.
 __docformat__ = 'restructuredtext'
 
 import importlib
+import json
 import logging
+import os
 import re
 from urllib.parse import urlsplit
 
@@ -48,7 +50,18 @@ class ProxyApplication(Starlette):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        plugins = self.plugins = {}
+        # initialize plugins
+        plugins = self.plugins = self.init_plugins(config)
+        # initialize remotes
+        self.remotes = self.init_remotes(config, plugins)
+        # initialize HTTP client
+        self.client = httpx.AsyncClient(verify=config.get('ssl_certificates', None),
+                                        follow_redirects=False)
+
+    @classmethod
+    def init_plugins(cls, config):
+        """Initialize plugins"""
+        plugins = {}
         for key, names in config['plugins'].items():
             pkg, klass = names.split()
             try:
@@ -59,20 +72,49 @@ class ProxyApplication(Starlette):
                 LOGGER.warning("Can't import plug-in package: %s", pkg)
             except AttributeError:
                 LOGGER.warning("Can't load plug-in: %s", klass)
-        remotes = self.remotes = {}
-        for base_path, settings in config['remotes'].items():
-            remotes[base_path] = {
-                'remote': settings['remote'],
-                'config': settings.get('config', {}),
-                'timeout': settings.get('timeout', 5.0) or None
-            }
-            for plugin_name in settings.get('plugins', ''):
-                plugin = plugins.get(plugin_name)
-                if plugin is not None:
-                    plugin.init_proxy(base_path, settings)
-                    remotes[base_path].setdefault('plugins', []).append(plugin)
-        self.client = httpx.AsyncClient(verify=config.get('ssl_certificates', None),
-                                        follow_redirects=False)
+        return plugins
+
+    @classmethod
+    def init_remotes(cls, config, plugins):
+        """Initialize remote configurations"""
+        remotes = {}
+        for base_path, settings in config.get('remotes', {}).items():
+            remotes[base_path] = cls.init_remote(base_path, settings, plugins)
+        cls.init_includes(remotes, config, plugins)
+        return remotes
+
+    @classmethod
+    def init_includes(cls, remotes, config, plugins):
+        """Initialize includes"""
+        for item in config.get('includes'):
+            if os.path.isdir(item):
+                for path, dirnames, filenames in os.walk('item'):
+                    for filename in filenames:
+                        cls.init_config(remotes, os.path.join(path, filename), plugins)
+            elif os.path.isfile(item):
+                cls.init_config(remotes, item, plugins)
+
+    @classmethod
+    def init_config(cls, remotes, path, plugins):
+        """Initialize configuration from included file"""
+        with open(path, 'r') as config_file:
+            for base_path, settings in json.load(config_file).items():
+                remotes[base_path] = cls.init_remote(base_path, settings, plugins)
+
+    @classmethod
+    def init_remote(cls, base_path, settings, plugins):
+        """Initialize remote configuration"""
+        remote = {
+            'remote': settings['remote'],
+            'config': settings.get('config', {}),
+            'timeout': settings.get('timeout', 5.0) or None
+        }
+        for plugin_name in settings.get('plugins', ''):
+            plugin = plugins.get(plugin_name)
+            if plugin is not None:
+                plugin.init_proxy(base_path, settings)
+                remote.setdefault('plugins', []).append(plugin)
+        return remote
 
     async def __call__(self, scope, receive, send):
         """Async proxy call"""
